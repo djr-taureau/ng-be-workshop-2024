@@ -5,20 +5,20 @@ import {
   Tree,
 } from '@nx/devkit';
 import * as path from 'path';
+import { libraryGenerator } from '@nx/js';
 import { UtilLibGeneratorSchema } from './schema';
 
 export async function utilLibGenerator(
   tree: Tree,
   options: UtilLibGeneratorSchema
 ) {
-  const projectRoot = `libs/${options.name}`;
-  addProjectConfiguration(tree, options.name, {
-    root: projectRoot,
-    projectType: 'library',
-    sourceRoot: `${projectRoot}/src`,
-    targets: {},
+
+  const prefixedName = `${options.directory}-util-${options.name}`;
+  const directory = `libs/${options.directory}/${prefixedName}`;
+  await libraryGenerator(tree, {
+
+    directory, tags: `scope:${options.directory}, type:util`
   });
-  generateFiles(tree, path.join(__dirname, 'files'), projectRoot, options);
   await formatFiles(tree);
 }
 
