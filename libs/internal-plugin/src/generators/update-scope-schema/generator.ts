@@ -1,53 +1,39 @@
-import {
-  Tree,
-  updateJson,
-  formatFiles,
-  ProjectConfiguration,
-  getProjects,
-} from '@nx/devkit';
+import { formatFiles, getProjects, Tree, updateJson } from '@nx/devkit';
+import { UpdateScopeSchemaGeneratorSchema } from './schema';
 
-export default async function (tree: Tree) {
-  const scopes = getScopes(getProjects(tree));
-  updateSchemaJson(tree, scopes);
-  updateSchemaInterface(tree, scopes);
-  await formatFiles(tree);
-}
-
-function getScopes(projectMap: Map<string, ProjectConfiguration>) {
-  const projects: any[] = Array.from(projectMap.values());
-  const allScopes: string[] = projects
-    .map((project) =>
-      project.tags.filter((tag: string) => tag.startsWith('scope:'))
-    )
-    .reduce((acc, tags) => [...acc, ...tags], [])
-    .map((scope: string) => scope.slice(6));
-  return Array.from(new Set(allScopes));
-}
-
-function updateSchemaJson(tree: Tree, scopes: string[]) {
+export async function updateScopeSchemaGenerator(
+  tree: Tree,
+  options: UpdateScopeSchemaGeneratorSchema
+) {
+  const scopes = [...getProjects(tree).values()].map(project => project.tags?.filter(tag => tag.startsWith('scope:')))
+  const scopes2 = [...new Set(scopes.flat())].filter(v=> v != undefined).map(v => v.split(':')[1])
   updateJson(
     tree,
-    'libs/internal-plugin/src/generators/util-lib/schema.json',
-    (schemaJson) => {
-      schemaJson.properties.directory['x-prompt'].items = scopes.map(
-        (scope) => ({
-          value: scope,
-          label: scope,
-        })
-      );
-      schemaJson.properties.directory.enums = scopes;
-      return schemaJson;
+    "libs/internal-plugin/src/generators/util-lib/schema.json",
+    t => {
+      t.properties.directory['x-prompt'].items = scopes2.map((scope) => ({
+        value: scope,
+        label: scope,
+      }));
+      return t;
     }
+  );
+  const schemaContent = tree.read('libs/internal-plugin/src/generators/util-lib/schema.d.ts').toString();
+  const result = replaceScopes(schemaContent, scopes2)
+  tree.write('libs/internal-plugin/src/generators/util-lib/schema.d.ts', result)
+  await formatFiles(tree)
+}
+
+function replaceScopes(content: string, scopes: string[]): string {
+  const joinScopes = scopes.map((s) => `'${s}'`).join(' | ');
+  const PATTERN = /interface UtilLibGeneratorSchema \{\n.*\n.*\n\}/gm;
+  return content.replace(
+    PATTERN,
+    `interface UtilLibGeneratorSchema {
+  name: string;
+  directory: ${joinScopes};
+}`
   );
 }
 
-function updateSchemaInterface(tree: Tree, scopes: string[]) {
-  const joinScopes = scopes.map((s) => `'${s}'`).join(' | ');
-  const interfaceDefinitionFilePath =
-    'libs/internal-plugin/src/generators/util-lib/schema.d.ts';
-  const newContent = `export interface UtilLibGeneratorSchema {
-  name: string;
-  directory: ${joinScopes};
-}`;
-  tree.write(interfaceDefinitionFilePath, newContent);
-}
+export default updateScopeSchemaGenerator;

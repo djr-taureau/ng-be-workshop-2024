@@ -30,8 +30,20 @@
             "label": "movies"
           },
           {
+            "value": "app",
+            "label": "app"
+          },
+          {
+            "value": "internal",
+            "label": "internal"
+          },
+          {
             "value": "shared",
             "label": "shared"
+          },
+          {
+            "value": "video-games",
+            "label": "video-games"
           }
         ]
       },
