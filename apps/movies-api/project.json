@@ -22,12 +22,43 @@
         }
       }
     },
+    "build": {
+      "defaultConfiguration": "production",
+      "configurations": {
+        "production": {
+          "assets": [
+            "apps/movies-api/src/assets",
+            "apps/movies-api/src/fly.toml",
+            "apps/movies-api/src/Dockerfile",
+            "apps/movies-api/src/.dockerignore"
+          ],
+          "externalDependencies": [
+            "@nestjs/microservices",
+            "@nestjs/microservices/microservices-module",
+            "@nestjs/websockets/socket-module",
+            "class-transformer",
+            "class-validator",
+            "cache-manager",
+            "cache-manager/package.json"
+          ]
+        }
+      }
+    },
     "test": {
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "apps/movies-api/jest.config.ts"
       }
+    },
+    "deploy": {
+      "executor": "@nx-workshop/internal-plugin:fly-deploy",
+      "outputs": [],
+      "options": {
+        "distLocation": "dist/apps/movies-api",
+        "flyAppName": "movies-api-solitary-thunder-6843"
+      },
+      "dependsOn": [{ "target": "build", "projects": "self", "params": "forward" }]
     }
   }
 }
